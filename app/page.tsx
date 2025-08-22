@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useToast } from "@/hooks/use-toast"
 import { Calendar, List, Plus, Search } from "lucide-react"
+import { LoginForm } from "@/components/login-form"
 
 // API URL configuration
 const API_URL =
@@ -60,13 +61,23 @@ export default function CalendarApp() {
   const [editingEvent, setEditingEvent] = useState<Event | null>(null)
   const [loading, setLoading] = useState(true)
   const [isApiAvailable, setIsApiAvailable] = useState(false)
-  const [showSearchOverlay, setShowSearchOverlay] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [authLoading, setAuthLoading] = useState(true)
   const { toast } = useToast()
+  const [showSearchOverlay, setShowSearchOverlay] = useState(false) // Declare showSearchOverlay
+
+  useEffect(() => {
+    const authStatus = localStorage.getItem("agenda-auth")
+    setIsAuthenticated(authStatus === "true")
+    setAuthLoading(false)
+  }, [])
 
   // Load events on component mount
   useEffect(() => {
-    loadEvents()
-  }, [])
+    if (isAuthenticated) {
+      loadEvents()
+    }
+  }, [isAuthenticated])
 
   // Update filtered events when events change
   useEffect(() => {
@@ -269,6 +280,30 @@ export default function CalendarApp() {
     setShowEventForm(true)
   }
 
+  const handleLogin = () => {
+    setIsAuthenticated(true)
+  }
+
+  const handleLogout = () => {
+    localStorage.removeItem("agenda-auth")
+    setIsAuthenticated(false)
+  }
+
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated) {
+    return <LoginForm onLogin={handleLogin} />
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -314,6 +349,13 @@ export default function CalendarApp() {
             <Button onClick={handleNewEvent} className="flex items-center gap-2 bg-secondary hover:bg-secondary/90">
               <Plus className="h-4 w-4" />
               Nuevo Evento
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              className="text-destructive hover:text-destructive bg-transparent"
+            >
+              Salir
             </Button>
           </div>
         </div>
