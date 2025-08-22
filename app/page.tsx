@@ -15,7 +15,7 @@ import { LoginForm } from "@/components/login-form"
 // API URL configuration
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ||
-  "https://script.google.com/macros/s/AKfycbyd3RiZ43IKQl5hJ76-rI3mBCmfV8LcOS3b21tvqCzwtWeeLqbH1JWK9vNKqzcqeql8gg/exec"
+  "https://script.google.com/macros/s/AKfycbx7PWBipihw9UrdZZYXpcqoQWRsWRt4eA0a9tP_n2jl9WYZxtviXb7508JHZYhm2p7mUQ/exec"
 
 export interface Event {
   id: string
@@ -132,6 +132,10 @@ export default function CalendarApp() {
 
   const saveEvent = async (eventData: Omit<Event, "id">) => {
     try {
+      console.log("[v0] Starting saveEvent with data:", eventData)
+      console.log("[v0] isApiAvailable:", isApiAvailable)
+      console.log("[v0] editingEvent:", editingEvent)
+
       if (!isApiAvailable) {
         const newEvent: Event = {
           ...eventData,
@@ -154,21 +158,33 @@ export default function CalendarApp() {
         return
       }
 
+      console.log("[v0] Preparing API call to:", API_URL)
+
+      const formData = new URLSearchParams()
+      formData.append("action", "add")
+      formData.append("date", eventData.date)
+      formData.append("title", eventData.title)
+      formData.append("category", eventData.category)
+      formData.append("notes", eventData.notes)
+
+      console.log("[v0] Form data:", formData.toString())
+
       const response = await fetch(API_URL, {
         method: "POST",
+        mode: "cors",
         headers: {
-          "Content-Type": "application/json",
+          "Content-Type": "application/x-www-form-urlencoded",
         },
-        body: JSON.stringify({
-          action: "add",
-          date: eventData.date,
-          title: eventData.title,
-          category: eventData.category,
-          notes: eventData.notes,
-        }),
+        body: formData.toString(),
       })
 
+      console.log("[v0] Save response status:", response.status)
+      console.log("[v0] Save response ok:", response.ok)
+
       if (response.ok) {
+        const responseData = await response.json()
+        console.log("[v0] Save response data:", responseData)
+
         await loadEvents()
         setShowEventForm(false)
         setEditingEvent(null)
@@ -177,7 +193,9 @@ export default function CalendarApp() {
           description: `Evento ${editingEvent ? "actualizado" : "guardado"} en Drive`,
         })
       } else {
-        throw new Error("Failed to save event")
+        const errorText = await response.text()
+        console.log("[v0] Save error response:", errorText)
+        throw new Error(`Failed to save event: ${response.status} - ${errorText}`)
       }
     } catch (error) {
       console.error("[v0] Error saving event:", error)

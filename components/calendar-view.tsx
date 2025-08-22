@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { ChevronLeft, ChevronRight } from "lucide-react"
+import { EventTooltip } from "./event-tooltip"
 import type { Event } from "@/app/page"
 
 interface CalendarViewProps {
@@ -70,7 +71,14 @@ export function CalendarView({ events, onEventClick }: CalendarViewProps) {
   const getEventsForDate = (date: Date | null) => {
     if (!date) return []
     const dateString = date.toISOString().split("T")[0]
-    return events.filter((event) => event.date === dateString)
+    console.log("[v0] Looking for events on date:", dateString)
+    const filteredEvents = events.filter((event) => {
+      const eventDate = event.date.split("T")[0] // Extract date part from ISO string
+      console.log("[v0] Comparing:", dateString, "with event date:", eventDate)
+      return eventDate === dateString
+    })
+    console.log("[v0] Found events for", dateString, ":", filteredEvents)
+    return filteredEvents
   }
 
   const getCategoryClass = (category: string) => {
@@ -178,16 +186,16 @@ export function CalendarView({ events, onEventClick }: CalendarViewProps) {
                     </div>
                     <div className="space-y-1">
                       {dayEvents.map((event, eventIndex) => (
-                        <div
-                          key={eventIndex}
-                          className={`text-xs p-1.5 rounded cursor-pointer hover:opacity-80 ${getCategoryClass(event.category)}`}
-                          onClick={() => onEventClick(event)}
-                          title={`${event.title} - ${event.category}`}
-                        >
-                          <div className="font-medium">
-                            {event.title.length > 20 ? `${event.title.substring(0, 20)}...` : event.title}
+                        <EventTooltip key={eventIndex} event={event}>
+                          <div
+                            className={`text-xs p-1.5 rounded cursor-pointer hover:opacity-80 transition-opacity ${getCategoryClass(event.category)}`}
+                            onClick={() => onEventClick(event)}
+                          >
+                            <div className="font-medium">
+                              {event.title.length > 20 ? `${event.title.substring(0, 20)}...` : event.title}
+                            </div>
                           </div>
-                        </div>
+                        </EventTooltip>
                       ))}
                     </div>
                   </>
